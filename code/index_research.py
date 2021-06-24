@@ -3,6 +3,46 @@ import cv2
 import numpy as np
 import rasterio
 
+from .download.utils import transform_resolution
+
+
+def calculate_tcari(b03_path, b04_path, b05_path, out_path=None, nodata=0):
+
+    with rasterio.open(b03_path) as src:
+        b03 = src.read(1).astype(rasterio.float32)
+        crs = src.crs
+        meta = src.meta
+
+    with rasterio.open(b04_path) as src:
+        b04 = src.read(1).astype(rasterio.float32)
+        
+    with rasterio.open(b05_path) as src:
+        b05 = src.read(1).astype(rasterio.float32)
+        
+    if b03.shape != b05.shape:
+        transformed_path = transform_resolution(b05_path, b05_path.replace('_B05', '_B05_upscaled'))
+        with rasterio.open(transformed_path) as src:
+            b05 = src.read(1).astype(rasterio.float32)
+            
+    tcari = np.where(b05 / b04 == 0,
+                    nodata,
+                    3 * ( (b05 - b04) - 0.2 * (b05 - b03) ) * (b05 / b04)
+                    )
+
+    meta.update(driver="GTiff")
+    meta.update(dtype=rasterio.float32)
+
+    if out_path is None:
+        out_path = b04_path.replace("_B04", "_TCARI").replace(".jp2", ".tif")
+
+    with rasterio.open(out_path, "w", **meta) as dst:
+        dst.meta["nodata"] = 0
+        dst.meta["max"] = 1
+        dst.meta["min"] = 0
+        dst.write(tcari.astype(rasterio.float32), 1)
+
+    return out_path
+
 
 def calculate_msr_g(b04_path, b08_path, out_path=None):
 
@@ -28,7 +68,7 @@ def calculate_msr_g(b04_path, b08_path, out_path=None):
         dst.meta["nodata"] = 0
         dst.meta["max"] = 1
         dst.meta["min"] = 0
-        dst.write(msi_g.astype(rasterio.float32), 1)
+        dst.write(msr_g.astype(rasterio.float32), 1)
 
     return out_path
 
@@ -88,7 +128,7 @@ def calculate_ndwi(b03_path, b08_path, out_path=None):
     return out_path
 
 
-def calculate_ndvi(b04_path, b08_path, out_path=None):
+def calculate_ndvi(b04_path, b08_path, out_path=None, nodata=0):
 
     with rasterio.open(b08_path) as src:
         b08 = src.read(1).astype(rasterio.float32)
@@ -98,7 +138,7 @@ def calculate_ndvi(b04_path, b08_path, out_path=None):
     with rasterio.open(b04_path) as src:
         b04 = src.read(1).astype(rasterio.float32)
 
-    ndvi = np.where((b08 + b04) == 0, 0, (b08 - b04) / (b08 + b04))
+    ndvi = np.where((b08 + b04) == 0, nodata, (b08 - b04) / (b08 + b04))
 
     meta.update(driver="GTiff")
     meta.update(dtype=rasterio.float32)
@@ -115,7 +155,7 @@ def calculate_ndvi(b04_path, b08_path, out_path=None):
     return out_path
 
 
-def calculate_ndmi(b08_path, b12_path, out_path=None):
+def calculate_ndmi(b08_path, b12_path, out_path=None, nodata=0):
 
     with rasterio.open(b08_path) as src:
         b08 = src.read(1).astype(rasterio.float32)
@@ -127,13 +167,42 @@ def calculate_ndmi(b08_path, b12_path, out_path=None):
 
     b12 = cv2.resize(b12, (b08.shape[-2], b08.shape[-1]), interpolation=cv2.INTER_AREA)
 
-    ndvi = np.where((b08 + b12) == 0, 0, (b08 - b12) / (b08 + b12))
+    ndvi = np.where((b08 + b12) == 0, nodata, (b08 - b12) / (b08 + b12))
 
     meta.update(driver="GTiff")
     meta.update(dtype=rasterio.float32)
 
     if out_path is None:
         out_path = b08_path.replace("_B08", "_NDMI").replace(".jp2", ".tif")
+
+    with rasterio.open(out_path, "w", **meta) as dst:
+        dst.meta["nodata"] = 0
+        dst.meta["max"] = 1
+        dst.meta["min"] = 0
+        dst.write(ndvi.astype(rasterio.float32), 1)
+
+    return out_path
+
+def calculate_ndre(b07_path, b05_path, out_path=None, nodata=0):
+
+    with rasterio.open(b07_path) as src:
+        b07 = src.read(1).astype(rasterio.float32)
+        crs = src.crs
+        meta = src.meta
+
+    with rasterio.open(b05_path) as src:
+        b05 = src.read(1).astype(rasterio.float32)
+
+    if b05.shape != b07.shape:
+        b05 = cv2.resize(b05, (b07.shape[-2], b07.shape[-1]), interpolation=cv2.INTER_AREA)
+
+    ndvi = np.where((b07 + b05) == 0, nodata, (b07 - b05) / (b07 + b05))
+
+    meta.update(driver="GTiff")
+    meta.update(dtype=rasterio.float32)
+
+    if out_path is None:
+        out_path = b08_path.replace("_B07", "_NDRE").replace(".jp2", ".tif")
 
     with rasterio.open(out_path, "w", **meta) as dst:
         dst.meta["nodata"] = 0
