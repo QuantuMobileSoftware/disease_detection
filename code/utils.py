@@ -1,6 +1,7 @@
 import os
+import json
 import numpy as np
-import rwaterio
+import rasterio
 
 
 def draw_pseudocolor_raster(
@@ -13,6 +14,7 @@ def draw_pseudocolor_raster(
     end_date,
     request_id,
     annotated=False,
+    transform=None
 ):
     labels = []
     result_3c = image.reshape(1, image.shape[-2], image.shape[-1])
@@ -31,9 +33,9 @@ def draw_pseudocolor_raster(
             }
         )
 
-    meta["height"] = ndvi_image.shape[-2]
-    meta["width"] = ndvi_image.shape[-1]
-    meta["transform"] = tfs
+    meta["height"] = image.shape[-2]
+    meta["width"] = image.shape[-1]
+    meta["transform"] = transform
     meta["dtype"] = rasterio.uint8
 
     meta.update(count=3, nodata=0, compress="lzw", photometric="RGB")
@@ -60,3 +62,4 @@ def draw_pseudocolor_raster(
 
             for i in range(mask.shape[-1]):
                 dst.write(mask[:, :, i].astype(np.uint8), indexes=i + 1)
+

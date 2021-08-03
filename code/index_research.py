@@ -286,3 +286,4 @@ def combine_bands(band1, band2, op="+", out_path=None, out_shape=None):
             dst.write(calculated_img.astype(rasterio.float32), 1)
 
     return calculated_img
+
