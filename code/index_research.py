@@ -1,8 +1,7 @@
-import os
 import cv2
 import numpy as np
 import rasterio
-
+from pathlib import Path
 from .download.utils import transform_resolution
 
 
@@ -174,6 +173,8 @@ def calculate_ndmi(b08_path, b12_path, out_path=None, nodata=0):
 
     if out_path is None:
         out_path = b08_path.replace("_B08", "_NDMI").replace(".jp2", ".tif")
+
+    Path(out_path).parent.mkdir(parents=True, exist_ok=True)
 
     with rasterio.open(out_path, "w", **meta) as dst:
         dst.meta["nodata"] = 0
