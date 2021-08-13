@@ -36,5 +36,4 @@ docker build -f ./jupyter/DD/base.Dockerfile -t common_disease_detection:latest 
 ```
 echo 'start building prod_water_stress_detection:latest'
 docker build -f ./jupyter/DD/water_stress/prod.Dockerfile -t prod_water_stress_detection:latest .
-
 ```
