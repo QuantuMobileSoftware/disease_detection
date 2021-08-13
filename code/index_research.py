@@ -94,7 +94,7 @@ def calculate_mndwi(b03_path, b11_path, out_path=None):
     meta.update(dtype=rasterio.float32)
 
     if out_path is None:
-        out_path = b03_path.replace("_B08", "_MNDWI").replace(".jp2", ".tif")
+        out_path = b03_path.replace("_B03", "_MNDWI").replace(".jp2", ".tif")
 
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
 
