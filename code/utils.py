@@ -2,6 +2,13 @@ import os
 import json
 import numpy as np
 import rasterio
+import rasterio.mask as riomask
+from rasterio.warp import (
+    aligned_target,
+    calculate_default_transform,
+    reproject,
+    Resampling,
+)
 
 
 def draw_pseudocolor_raster(
@@ -63,3 +70,116 @@ def draw_pseudocolor_raster(
             for i in range(mask.shape[-1]):
                 dst.write(mask[:, :, i].astype(np.uint8), indexes=i + 1)
 
+
+def transform_resolution(data_path, save_path, resolution=(10, 10)):
+
+    with rasterio.open(data_path) as src:
+
+        transform, width, height = aligned_target(
+            transform=src.meta["transform"],
+            width=src.width,
+            height=src.height,
+            resolution=resolution,
+        )
+
+        kwargs = src.meta.copy()
+        kwargs.update(
+            {"transform": transform, "width": width, "height": height, "nodata": 0}
+        )
+
+        if ".jp2" in data_path:
+            save_path = save_path.replace(".jp2", ".tif")
+            kwargs["driver"] = "GTiff"
+        with rasterio.open(save_path, "w", **kwargs) as dst:
+            for i in range(1, src.count + 1):
+                reproject(
+                    source=rasterio.band(src, i),
+                    destination=rasterio.band(dst, i),
+                    src_transform=src.transform,
+                    src_crs=src.crs,
+                    dst_transform=transform,
+                    resampling=Resampling.nearest,
+                )
+
+    return save_path
+
+
+def transform_crs(data_path, save_path, dst_crs="EPSG:4326", resolution=(10, 10)):
+    with rasterio.open(data_path) as src:
+        if resolution is None:
+            transform, width, height = calculate_default_transform(
+                src.crs, dst_crs, src.width, src.height, *src.bounds
+            )
+        else:
+            transform, width, height = calculate_default_transform(
+                src.crs,
+                dst_crs,
+                src.width,
+                src.height,
+                *src.bounds,
+                resolution=resolution,
+            )
+        kwargs = src.meta.copy()
+        kwargs.update(
+            {"crs": dst_crs, "transform": transform, "width": width, "height": height}
+        )
+        with rasterio.open(save_path, "w", **kwargs) as dst:
+            for i in range(1, src.count + 1):
+                reproject(
+                    source=rasterio.band(src, i),
+                    destination=rasterio.band(dst, i),
+                    src_transform=src.transform,
+                    src_crs=src.crs,
+                    dst_transform=transform,
+                    dst_crs=dst_crs,
+                    resampling=Resampling.nearest,
+                )
+
+    return save_path
+
+def stitch_tiles(paths, out_raster_path):
+    tiles = []
+    tmp_files = []
+    
+    for i, path in enumerate(paths):
+        if i == 0:
+            file = rasterio.open(path)
+            meta, crs = file.meta, file.crs
+        else:
+            tmp_path = path.replace(
+                '.jp2', '_tmp.jp2').replace('.tif', '_tmp.tif')
+            crs_transformed = transform_crs(path, tmp_path, 
+                                            dst_crs=crs, 
+                                            resolution=None)
+            tmp_files.append(crs_transformed)
+            file = rasterio.open(crs_transformed)
+        tiles.append(file)
+            
+    tile_arr, transform = merge(tiles, method='last')
+    
+    
+    meta.update({"driver": "GTiff",
+                 "height": tile_arr.shape[1],
+                 "width": tile_arr.shape[2],
+                 "transform": transform,
+                 "crs": crs})
+    
+    if '.jp2' in out_raster_path:
+        out_raster_path = out_raster_path.replace('.jp2', '_merged.tif')
+    else:
+        out_raster_path = out_raster_path.replace('.tif', '_merged.tif')
+    print(f'saved raster {out_raster_path}')
+
+    for tile in tiles:
+        tile.close()
+        
+    for tmp_file in tmp_files:
+        try:
+            os.remove(tmp_file)
+        except FileNotFoundError:
+            print(f'Tile {tmp_file} was removed or renamed, skipping')
+        
+    with rasterio.open(out_raster_path, "w", **meta) as dst:
+        dst.write(tile_arr)
+    
+    return out_raster_path
