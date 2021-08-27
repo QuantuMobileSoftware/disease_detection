@@ -3,6 +3,7 @@ import json
 import numpy as np
 import rasterio
 import rasterio.mask as riomask
+from rasterio.merge import merge
 from rasterio.warp import (
     aligned_target,
     calculate_default_transform,
@@ -138,6 +139,8 @@ def transform_crs(data_path, save_path, dst_crs="EPSG:4326", resolution=(10, 10)
     return save_path
 
 def stitch_tiles(paths, out_raster_path):
+    if not isinstance(paths[0], str):
+        paths = [str(x) for x in paths]
     tiles = []
     tmp_files = []
     
