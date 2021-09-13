@@ -174,7 +174,7 @@ def calculate_ndmi(b08_path, b12_path, out_path=None, nodata=0):
     with rasterio.open(b12_path) as src:
         b12 = src.read(1).astype(rasterio.float32)
 
-    b12 = cv2.resize(b12, (b08.shape[-2], b08.shape[-1]), interpolation=cv2.INTER_AREA)
+    b12 = cv2.resize(b12, (b08.shape[-1], b08.shape[-2]), interpolation=cv2.INTER_AREA)
 
     ndvi = np.where((b08 + b12) == 0, nodata, (b08 - b12) / (b08 + b12))
 
