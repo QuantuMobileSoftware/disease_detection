@@ -37,7 +37,7 @@ class PlantStress(object):
         return img_anom
 
     def segment_field(
-        self, field, ndvi_path, start_date, end_date, request_id=10001, idx=0
+        self, name, field, ndvi_path, start_date, end_date, request_id=10001, idx=0
     ):
 
         try:
@@ -91,7 +91,7 @@ class PlantStress(object):
             image=img_anom,
             colors=colors,
             meta=meta,
-            meta_name="Field anomalies",
+            meta_name=name,
             out_raster_path=raster_path,
             start_date=start_date,
             end_date=end_date,
