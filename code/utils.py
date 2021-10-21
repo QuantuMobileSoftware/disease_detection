@@ -201,4 +201,3 @@ def dump_no_data_geosjon(polygon, geojson_path, metadata):
 
     with open(geojson_path, 'w') as f:
         geojson.dump(feature, f)
-
