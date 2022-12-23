@@ -1,4 +1,4 @@
-# SIP MOISTURE ANOMALY
+# SIP PLANT STRESS
 
 ## Build image
 `docker build -t quantumobile/sip_plant_stress .`
