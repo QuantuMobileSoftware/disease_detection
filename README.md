@@ -1,39 +1,49 @@
-#for adding disease_detection package to sip project:
+# SIP PLANT STRESS
+
+## Build image
+`docker build -t quantumobile/sip_plant_stress .`
+
+## Pull image
+`docker pull quantumobile/sip_plant_stress`
+
+## Push to registry
+`docker push quantumobile/sip_plant_stress`
+
+## Docker run command
+
 ```
-cd data/notebook
-git clone git@github.com:QuantuMobileSoftware/disease_detection.git dd
-cd dd
+docker run \
+    -e "AOI=POLYGON((-85.31589029977734 40.37835374310216,-85.2369260663789 40.37835374310216,-85.2369260663789 40.334139412509636,-85.31589029977734 40.334139412509636,-85.31589029977734 40.37835374310216))" \
+    -e "START_DATE=2019-07-01" \
+    -e "END_DATE=2019-07-30" \
+    -e "SENTINEL2_CACHE=/input/SENTINEL2_CACHE" \
+    -e "OUTPUT_FOLDER=/output" \
+    -e "SENTINEL2_GOOGLE_API_KEY=/input/api-key-retriever.json" \
+    -v `pwd`/api-key-retriever.json:/input/api-key-retriever.json \
+    -v `pwd`/data/SENTINEL2_CACHE:/input/SENTINEL2_CACHE \
+    -v `pwd`/data/results:/output \
+    quantumobile/sip_plant_stress
 ```
 
+## Example result
 
-#for enabling nfs support 
-```
-sudo apt-get install cifs-utils
-sudo apt-get install nfs-common
-```
+![](./example/example.png)
 
 
-#get some requirements from NFS server
-```
-sudo mount 192.168.1.58:/volume1/SIP /home/quantum/sip
-cp -r --remove-destination /home/quantum/sip/.prod_notebooks_requirements/dd/water_stress/sentinel2grid.geojson data/notebooks/dd
-cp -r --remove-destination /home/quantum/sip/.prod_notebooks_requirements/dd/water_stress/jupyter_notebook_config.json data/notebooks/dd
-sudo umount /home/quantum/sip
-```
+## How to add model to SIP
+____
 
-#for building images for prod
-after updating all files from git repository, go to project SIP root directory
-##copy requirements from repository to jupyter folder
-```
-cp -r --remove-destination data/notebooks/dd/requirements.txt jupyter/DD/requirements.txt
-```
-##for building common_disease_detection:latest
-```
-echo 'start building common_disease_detection:latest'
-docker build -f ./jupyter/DD/base.Dockerfile -t common_disease_detection:latest .
-```
-##for building prod_water_stress_detection:latest
-```
-echo 'start building prod_water_stress_detection:latest'
-docker build -f ./jupyter/DD/water_stress/prod.Dockerfile -t prod_water_stress_detection:latest .
-```
+1. Open Admin page, `localhost:9000/admin/`
+2. In AOI block select `Components` and click on `+Add`
+    * Add <b>Component name</b>: `Add your name`
+    * Add <b>Image</b>: `quantumobile/sip_plant_stress`
+    * Select <b>Sentinel Google API key is required</b>
+    * Deselect <b>GPU is needed for a component to run</b>
+3. <b>SAVE</b>
+4. Update page with `SIP app` <i>(localhost:3000)</i>
+5. Select `Area` or `Field` on the map and save it
+6. Drop-down menu on your `Area` or `Field` -> `View reports`
+7. `Create new`
+8. In `Select layers` choose your component, add additional params like <i>Year</i>, <i>Date range</i> and so on
+9. `Save changes`
+

@@ -1,7 +1,6 @@
 import os
 import re
 import numpy as np
-import pandas as pd
 import geopandas as gpd
 import rasterio
 
@@ -107,28 +106,3 @@ def get_min_clouds(
         filtered[tile] = sorted(filtered_folders)[0][1]
 
     return filtered
-
-
-def transform_resolution(data_path, save_path, resolution=(10, 10)):
-    with rasterio.open(data_path) as src:
-        transform, width, height = rasterio.warp.aligned_target(
-            transform=src.meta['transform'], width=src.height,
-            height=src.height, resolution=resolution)
-
-        kwargs = src.meta.copy()
-        kwargs.update({'transform': transform,
-                       'width': width,
-                       'height': height})
-        with rasterio.open(save_path, 'w', **kwargs) as dst:
-            for i in range(1, src.count + 1):
-                rasterio.warp.reproject(
-                    source=rasterio.band(src, i),
-                    destination=rasterio.band(dst, i),
-                    src_transform=src.transform,
-                    src_crs=src.crs,
-                    dst_transform=transform,
-                    resampling=rasterio.warp.Resampling.nearest)
-        dst.close()
-    src.close()
-
-    return save_path
