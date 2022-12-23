@@ -37,7 +37,7 @@ class PlantStress(object):
         return img_anom
 
     def segment_field(
-        self, name, field, ndvi_path, start_date, end_date, request_id=10001, idx=0
+        self, name, field, ndvi_path, raster_path, start_date, end_date, request_id=10001, idx=0
     ):
 
         try:
@@ -82,7 +82,6 @@ class PlantStress(object):
 
         img_anom = self._get_anomalies_array(ndvi_image, z1, z2, border_mask)
 
-        raster_path = ndvi_path.replace("_ndvi.tif", f"_field_{request_id}_{idx}.tif")
         assert raster_path != ndvi_path
 
         colors = {"Normal Growth": (0, 0, 0), "Anomaly": (182, 10, 28)}
