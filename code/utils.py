@@ -5,7 +5,6 @@ import numpy as np
 import rasterio
 from rasterio.merge import merge
 from rasterio.warp import (
-    aligned_target,
     calculate_default_transform,
     reproject,
     Resampling,
@@ -70,39 +69,6 @@ def draw_pseudocolor_raster(
 
             for i in range(mask.shape[-1]):
                 dst.write(mask[:, :, i].astype(np.uint8), indexes=i + 1)
-
-
-def transform_resolution(data_path, save_path, resolution=(10, 10)):
-
-    with rasterio.open(data_path) as src:
-
-        transform, width, height = aligned_target(
-            transform=src.meta["transform"],
-            width=src.width,
-            height=src.height,
-            resolution=resolution,
-        )
-
-        kwargs = src.meta.copy()
-        kwargs.update(
-            {"transform": transform, "width": width, "height": height, "nodata": 0}
-        )
-
-        if ".jp2" in data_path:
-            save_path = save_path.replace(".jp2", ".tif")
-            kwargs["driver"] = "GTiff"
-        with rasterio.open(save_path, "w", **kwargs) as dst:
-            for i in range(1, src.count + 1):
-                reproject(
-                    source=rasterio.band(src, i),
-                    destination=rasterio.band(dst, i),
-                    src_transform=src.transform,
-                    src_crs=src.crs,
-                    dst_transform=transform,
-                    resampling=Resampling.nearest,
-                )
-
-    return save_path
 
 
 def transform_crs(data_path, save_path, dst_crs="EPSG:4326", resolution=(10, 10)):
